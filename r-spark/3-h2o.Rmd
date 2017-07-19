@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+---
+
+Spark is an exciting big data framework which allows us to access big data. R is mostly known for in-memory processing, but with 
+Spark, R can very efficiently run on large clusters of Big Data from the comfort of your RStudio.
+
+
+First, let's install the "rsparkling" package.
+
+```{r}
+install.packages("sparklyr")
+install.packages("rsparkling")
+options(rsparkling.sparklingwater.version = "2.0.13")
+
+```
+
+
+Let's connect to spark, and load mtcars
+
+```{r}
+library(sparklyr)
+library(rsparkling)
+library(h2o)
+library(dplyr)
+options(rsparkling.sparklingwater.version = "1.6.8")
+
+#options(rsparkling.sparklingwater.version = "2.0.13")
+#spark_install(version = "1.6.2")
+
+
+sc <- spark_connect("local", version = "1.6.2")
+
+mtcars_tbl <- copy_to(sc, mtcars, "mtcars")
+```
+
+Let's load some sample data to the cluster
+
+```{r}
+iris_tbl <- copy_to(sc, iris, "iris")
+mtcars_tbl <- copy_to(sc, mtcars, "mtcars")
+```
+
+```{r}
+iris_hf <- as_h2o_frame(sc, iris_tbl, strict_version_check = FALSE)
+mtcars_hf <- as_h2o_frame(sc, mtcars_tbl, strict_version_check = FALSE)
+```
+
+### Kmeans
+
+let's use h2o to perform kmeans
+
+```{r}
+kmeans_model <- h2o.kmeans(training_frame = mtcars_hf, 
+                           x = 3:4,
+                           k = 3,
+                           seed = 1)
+```
+
+Awesome... did you see the iris data?  That means we put the data in Spark, and then we can use SQL to query it.
+
+Now let's try to look at our Spark cluster to see what jobs we may have run.
+
+```{r}
+spark_web(sc)
+```
+
+Viola!  Did you notice the Spark UI.  Notice how you have had several jobs run on this session. Click on the latest one to see some statistics on your job.
+
+
+### Using Dplyr
+
+Part of dplyr's utility is being able to use the same verbs for data on in-memory as well as on-disk data.  We can also use that on remote spark data
+
+```{r}
+library(dplyr)
+library(nycflights13)
+flights_tbl <- copy_to(sc, nycflights13::flights, "flights")
+```
+
+
+Now, let's try some more queries with this.
+
+```{r}
+delay <- flights_tbl %>% 
+  group_by(tailnum) %>%
+  summarise(count = n(), dist = mean(distance), delay = mean(arr_delay)) %>%
+  filter(count > 20, dist < 2000, !is.na(delay)) %>%
+  collect
+```
+
+### Bonus: Connecting to a Remote Spark Cluster
+
+Ask your instructor for the IP address of a remote spark cluster.  We are going to connect in clustger mode.
+
+```{r}
+sc <- spark_connect(master = "spark://REMOTEIPADDRESS:7077")
+
+```
+
+Now let's try deploying that Iris table again
+
+
+```{r}
+iris_tbl <- copy_to(sc, iris)
+```
+
+We had to do that again because this time we're connecting to the remote server.  Now let's try our Sark SQL command again.
+
+
+```{r}
+library(DBI)
+iris_preview <- dbGetQuery(sc, "SELECT * FROM iris LIMIT 10")
+iris_preview
+```
+
+

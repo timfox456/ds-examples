@@ -1,0 +1,124 @@
+---
+title: "ML On Spark"
+output:
+  html_notebook: default
+---
+
+We can use Spark with mllib. Let's connect to our cluster.
+
+```{r}
+library("sparklyr")
+library("ggplot2")
+sc <- spark_connect(master = "local")
+
+```
+
+
+Let's install Spark 2.1.0  We actually can do this directly from R without having to do anything special.
+
+```{r}
+lm_model <- iris_tbl %>%
+  select(Petal_Width, Petal_Length) %>%
+  ml_linear_regression(Petal_Length ~ Petal_Width)
+
+iris_tbl %>%
+  select(Petal_Width, Petal_Length) %>%
+  collect %>%
+  ggplot(aes(Petal_Length, Petal_Width)) +
+    geom_point(aes(Petal_Width, Petal_Length), size = 2, alpha = 0.5) +
+    geom_abline(aes(slope = coef(lm_model)[["Petal_Width"]],
+                    intercept = coef(lm_model)[["(Intercept)"]]),
+                color = "red") +
+  labs(
+    x = "Petal Width",
+    y = "Petal Length",
+    title = "Linear Regression: Petal Length ~ Petal Width",
+    subtitle = "Use Spark.ML linear regression to predict petal length as a function of petal width."
+  )
+```
+
+Spark can be run either remotely or locally.  Locally is mainly just used for test and development, as running at scale is going to be largely remote on a large cluster.
+
+Let's first try connecting locally.
+
+```{r}
+sc <- spark_connect(master = "local")
+```
+
+Great! We've now connected to our Spark local cluster.
+
+Spark works by loading datasets to the cluster.  Normally, these are big datasets, too big to fit on a single machine. However,
+we can test and get started by parallelizing local data. Let's start with the iris dataset.
+
+```{r}
+iris_tbl <- copy_to(sc, iris)
+```
+
+### Spark SQL
+
+Let's use Spark SQL to query our Iris table.  Spark SQL allows us to use SQL like syntax to query data.
+
+```{r}
+library(DBI)
+iris_preview <- dbGetQuery(sc, "SELECT * FROM iris LIMIT 10")
+iris_preview
+```
+
+Awesome... did you see the iris data?  That means we put the data in Spark, and then we can use SQL to query it.
+
+Now let's try to look at our Spark cluster to see what jobs we may have run.
+
+```{r}
+spark_web(sc)
+```
+
+Viola!  Did you notice the Spark UI.  Notice how you have had several jobs run on this session. Click on the latest one to see some statistics on your job.
+
+
+### Using Dplyr
+
+Part of dplyr's utility is being able to use the same verbs for data on in-memory as well as on-disk data.  We can also use that on remote spark data
+
+```{r}
+library(dplyr)
+library(nycflights13)
+flights_tbl <- copy_to(sc, nycflights13::flights, "flights")
+```
+
+
+Now, let's try some more queries with this.
+
+```{r}
+delay <- flights_tbl %>% 
+  group_by(tailnum) %>%
+  summarise(count = n(), dist = mean(distance), delay = mean(arr_delay)) %>%
+  filter(count > 20, dist < 2000, !is.na(delay)) %>%
+  collect
+```
+
+### Bonus: Connecting to a Remote Spark Cluster
+
+Ask your instructor for the IP address of a remote spark cluster.  We are going to connect in clustger mode.
+
+```{r}
+sc <- spark_connect(master = "spark://REMOTEIPADDRESS:7077")
+
+```
+
+Now let's try deploying that Iris table again
+
+
+```{r}
+iris_tbl <- copy_to(sc, iris)
+```
+
+We had to do that again because this time we're connecting to the remote server.  Now let's try our Sark SQL command again.
+
+
+```{r}
+library(DBI)
+iris_preview <- dbGetQuery(sc, "SELECT * FROM iris LIMIT 10")
+iris_preview
+```
+
+
