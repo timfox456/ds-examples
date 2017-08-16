@@ -1,0 +1,39 @@
+TripTypeID,TripTypeDescription
+3,Financial Services
+4,Pharmacy Runs
+5,Pharmacy Runs
+6,Booze and Calories
+7,Strictly Grocery
+8,Grocery and General Merchandise
+9,Mens Mixed Merchandise
+12,Mixed Grocery and Household
+14,Michaels Run
+15,Party Trip 
+18,Toys
+19,Electronics
+20,Automotive
+21,Office and Crafts
+22,Gaming and Media Electronics
+23,Media Players
+24,Kitchen and Bath
+25,Apparel Male Focused
+26,Home Improvement Run
+27,Lawn and Garden
+28,Sporting Goods
+29,Kids Sports
+30,Shoes and Jewelry
+31,Cellphone
+32,Baby
+33,Cleaning Supplies
+34,Pets
+35,Brand-name Grocery
+36,Beauty and Personal Care
+37,Produce Grocery
+38,Gallon of Milk
+39,Mixed Grocery
+40,Nonperishable Grocery
+41,Return Trip
+42,Mixed Impulse
+43,Broad Mix
+44,Mixed Personal and Grocery
+999,Other
